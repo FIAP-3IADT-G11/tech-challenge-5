@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { OpenAI} from 'openai';
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { OpenAI } from "openai";
 
 @Injectable()
 export class OpenAIService {
@@ -11,18 +11,19 @@ export class OpenAIService {
     });
   }
 
-  async analyzeImage(imageBuffer: Buffer, mimeType = 'image/jpeg') {
-    const base64Image = imageBuffer.toString('base64');
+  async analyzeImage(imageBuffer: Buffer, mimeType = "image/jpeg") {
+    const base64Image = imageBuffer.toString("base64");
 
     const prompt = `
-        Você é um assistente de segurança da informação especializado em análise de arquitetura de sistemas de software, identificando os componentes da arquitetura.
-        Analise o diagrama de arquitetura de sistemas de software fornecido e identifique possíveis vulnerabilidades de cada componente utilizando o modelo STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege).
-        Para cada ameaça identificada, explique:
-        - Qual categoria STRIDE ela representa
-        - Por que ela é uma ameaça
+        Você é um assistente de segurança da informação especializado em análise de vulnerabilidades de arquitetura de sistemas de software, identificando os componentes da arquitetura.
+        Analise o diagrama de arquitetura de sistemas de software fornecido através de uma imagem e identifique possíveis vulnerabilidades de cada componente utilizando o modelo STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege).
+        Para cada componente identificado, explique:
+        - As ameaças identificadas
+        - Qual categoria STRIDE elas representam
+        - Por que elas são ameaças
         - Sugestões de mitigação
 
-        Obrigatoriamente cada componente deve ser analisado, mesmo que não seja possível identificar ameaças. Caso não seja possível identificar ameaças, retorne "Nenhuma ameaça identificada para esse componente".
+        Obrigatoriamente cada componente deve ser analisado, mesmo que não seja possível identificar ameaças. Caso não seja possível identificar ameaças.
 
         Apresente sua resposta de forma estruturada, separando por componente, e se a ameaça é possível de ocorrer.
 
@@ -31,19 +32,17 @@ export class OpenAIService {
         Diagrama para análise: [imagem anexada]
 
         O relatório deve ser em português brasileiro.
-
-        Caso não seja possível identificar nenhuma ameaça, retorne "Nenhuma ameaça identificada".
     `;
-  
+
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: "ft:gpt-4o-2024-08-06:personal::Bpx5IMVx",
       messages: [
         {
-          role: 'user',
+          role: "user",
           content: [
-            { type: 'text', text: prompt },
+            { type: "text", text: prompt },
             {
-              type: 'image_url',
+              type: "image_url",
               image_url: {
                 url: `data:${mimeType};base64,${base64Image}`,
               },
@@ -51,15 +50,21 @@ export class OpenAIService {
           ],
         },
       ],
-      max_tokens: 1000,
+      max_tokens: 2000,
     });
 
     const result = response.choices[0].message?.content;
 
-    if (result?.includes('Imagem não é um diagrama de arquitetura de sistemas de software')) {
-      throw new BadRequestException('Imagem não é um diagrama de arquitetura de sistemas de software');
+    if (
+      result?.includes(
+        "Imagem não é um diagrama de arquitetura de sistemas de software"
+      )
+    ) {
+      throw new BadRequestException(
+        "Imagem não é um diagrama de arquitetura de sistemas de software"
+      );
     }
 
     return result;
   }
-} 
+}
